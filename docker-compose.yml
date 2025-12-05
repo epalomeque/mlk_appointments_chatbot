@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mlk-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mlkuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlkpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-mlkappointments}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlkuser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mlk-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlk-api
+    environment:
+      # Ollama configuration
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://192.168.0.164:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3}
+      # Database configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mlkuser}:${POSTGRES_PASSWORD:-mlkpassword}@postgres:5432/${POSTGRES_DB:-mlkappointments}
+      # FastAPI configuration
+      FASTAPI_PORT: ${FASTAPI_PORT:-8000}
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./app/db:/app/app/db
+    networks:
+      - mlk-network
+    restart: unless-stopped
+
+networks:
+  mlk-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
