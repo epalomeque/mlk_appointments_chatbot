@@ -40,6 +40,15 @@ class AppointmentResponse(BaseModel):
         from_attributes = True
 
 
+class AppointmentUpdate(BaseModel):
+    """Esquema para actualizar una cita"""
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    date: Optional[datetime] = None
+    description: Optional[str] = None
+
+
 class AppointmentListResponse(BaseModel):
     """Esquema para lista de citas"""
     appointments: list[AppointmentResponse]

@@ -9,7 +9,7 @@ from src.database import init_db, get_session
 from src.models import Appointment, ChatMessage
 from src.schemas import (
     ChatRequest, ChatResponse, 
-    AppointmentCreate, AppointmentResponse, AppointmentListResponse
+    AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListResponse
 )
 from src.ollama_service import ollama_service
 
@@ -164,6 +164,35 @@ async def get_appointment(
     if not appointment:
         raise HTTPException(status_code=404, detail="Cita no encontrada")
     return AppointmentResponse.model_validate(appointment)
+
+
+@app.put("/api/appointments/{appointment_id}", response_model=AppointmentResponse)
+async def update_appointment(
+    appointment_id: int,
+    appointment_update: AppointmentUpdate,
+    session: Session = Depends(get_session)
+):
+    """
+    Actualizar una cita existente
+    """
+    appointment = session.get(Appointment, appointment_id)
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    
+    try:
+        # Actualizar solo los campos proporcionados
+        update_data = appointment_update.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(appointment, field, value)
+        
+        appointment.updated_at = datetime.utcnow()
+        session.add(appointment)
+        session.commit()
+        session.refresh(appointment)
+        return AppointmentResponse.model_validate(appointment)
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar la cita: {str(e)}")
 
 
 @app.delete("/api/appointments/{appointment_id}")

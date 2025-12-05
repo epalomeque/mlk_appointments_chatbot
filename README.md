@@ -408,7 +408,67 @@ mlk-appointments-chatbot/
 
 ## 🧪 Testing
 
-Puedes usar el archivo `test_main.http` (si está disponible) o herramientas como:
+### Ejecutar Tests con pytest
+
+El proyecto incluye tests automatizados usando pytest. Para ejecutarlos:
+
+1. **Instalar dependencias de testing:**
+```bash
+pip install -e ".[test]"
+```
+
+O instalar manualmente:
+```bash
+pip install pytest pytest-asyncio httpx
+```
+
+2. **Ejecutar todos los tests:**
+```bash
+pytest
+```
+
+3. **Ejecutar tests con más detalles:**
+```bash
+pytest -v
+```
+
+4. **Ejecutar un archivo de test específico:**
+```bash
+pytest tests/test_appointments.py
+pytest tests/test_chat.py
+```
+
+5. **Ejecutar un test específico:**
+```bash
+pytest tests/test_appointments.py::test_create_appointment
+```
+
+6. **Ejecutar tests con cobertura:**
+```bash
+pip install pytest-cov
+pytest --cov=src --cov-report=html
+```
+
+### Tests Disponibles
+
+- **`tests/test_appointments.py`**: Tests para el CRUD completo de citas
+  - Crear citas
+  - Consultar citas por ID
+  - Listar citas con paginación
+  - Actualizar citas (parcial y completo)
+  - Eliminar citas
+  - Flujo completo CRUD
+
+- **`tests/test_chat.py`**: Tests para el chatbot
+  - Endpoint básico de chat
+  - Conversación completa para agendar citas
+  - Chat con contexto de citas existentes
+  - Manejo de errores
+  - Persistencia de mensajes
+
+### Testing Manual
+
+También puedes usar el archivo `test_main.http` (si está disponible) o herramientas como:
 
 - **Postman**
 - **Thunder Client** (extensión de VS Code)
