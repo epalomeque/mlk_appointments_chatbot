@@ -2,6 +2,9 @@
 import httpx
 from typing import Optional
 from src.config import OLLAMA_BASE_URL, OLLAMA_MODEL
+from src.master_prompt import MASTER_PROMPT
+
+BASE_TIMEOUT = 120.0
 
 
 class OllamaService:
@@ -10,8 +13,9 @@ class OllamaService:
     def __init__(self):
         self.base_url = OLLAMA_BASE_URL
         self.model = OLLAMA_MODEL
-        self.client = httpx.AsyncClient(timeout=60.0)
+        self.client = httpx.AsyncClient(timeout=BASE_TIMEOUT)
     
+
     async def chat(self, message: str, context: Optional[str] = None) -> str:
         """
         Enviar un mensaje al modelo de Ollama y obtener una respuesta
@@ -24,15 +28,7 @@ class OllamaService:
             Respuesta del modelo
         """
         # Construir el prompt con contexto del sistema
-        system_prompt = """Eres un asistente virtual para agendar citas. 
-Tu tarea es ayudar a los usuarios a programar citas de manera amigable y profesional.
-Cuando un usuario quiera agendar una cita, debes extraer:
-- Nombre de la persona
-- Fecha y hora deseada
-- Descripción o motivo de la cita
-- Información de contacto (email o teléfono) si está disponible
-
-Responde de manera clara y concisa. Si necesitas más información, haz preguntas específicas."""
+        system_prompt = MASTER_PROMPT
         
         if context:
             system_prompt += f"\n\nContexto adicional: {context}"
