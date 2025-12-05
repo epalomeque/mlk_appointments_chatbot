@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from datetime import datetime
 from typing import List
+from uuid import uuid4
 
 from src.database import init_db, get_session
 from src.models import Appointment, ChatMessage
@@ -78,18 +79,37 @@ async def chat(
             select(Appointment).order_by(Appointment.date.desc()).limit(5)
         ).all()
         
-        context = None
+        # Construir contexto combinando citas recientes y el contexto opcional enviado por el cliente
+        context_parts = []
         if appointments:
-            context = "Citas recientes: " + ", ".join([
-                f"{apt.name} el {apt.date.strftime('%Y-%m-%d %H:%M')}"
-                for apt in appointments
-            ])
+            context_parts.append(
+                "Citas recientes: " + ", ".join([
+                    f"{apt.name} el {apt.date.strftime('%Y-%m-%d %H:%M')}"
+                    for apt in appointments
+                ])
+            )
+        if getattr(request, "context", None):
+            context_parts.append(f"Contexto del usuario: {request.context}")
+
+        context = "\n".join(context_parts) if context_parts else None
         
-        # Obtener respuesta de Ollama
-        response_text = await ollama_service.chat(request.message, context)
+        # Determinar o generar user_id para mantener el contexto entre turnos
+        user_id = (request.user_id or "").strip() or str(uuid4())
+
+        # Recuperar historial reciente de este usuario
+        history_items: List[ChatMessage] = session.exec(
+            select(ChatMessage)
+            .where(ChatMessage.user_id == user_id)
+            .order_by(ChatMessage.created_at.asc())
+        ).all()
+        history = [(item.user_message, item.bot_response) for item in history_items]
+
+        # Obtener respuesta de Ollama, pasando también historial
+        response_text = await ollama_service.chat(request.message, context, history)
         
         # Guardar el mensaje en el historial
         chat_message = ChatMessage(
+            user_id=user_id,
             user_message=request.message,
             bot_response=response_text
         )
@@ -99,7 +119,8 @@ async def chat(
         
         return ChatResponse(
             response=response_text,
-            message_id=chat_message.id
+            message_id=chat_message.id,
+            user_id=user_id
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en el chat: {str(e)}")

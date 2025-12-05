@@ -1,6 +1,6 @@
 # src/ollama_service.py
 import httpx
-from typing import Optional
+from typing import Optional, List, Tuple
 from src.config import OLLAMA_BASE_URL, OLLAMA_MODEL
 from src.master_prompt import MASTER_PROMPT
 
@@ -16,7 +16,12 @@ class OllamaService:
         self.client = httpx.AsyncClient(timeout=BASE_TIMEOUT)
     
 
-    async def chat(self, message: str, context: Optional[str] = None) -> str:
+    async def chat(
+        self,
+        message: str,
+        context: Optional[str] = None,
+        history: Optional[List[Tuple[str, str]]] = None,
+    ) -> str:
         """
         Enviar un mensaje al modelo de Ollama y obtener una respuesta
         
@@ -26,12 +31,21 @@ class OllamaService:
         
         Returns:
             Respuesta del modelo
+            :param history:
         """
         # Construir el prompt con contexto del sistema
         system_prompt = MASTER_PROMPT
         
         if context:
             system_prompt += f"\n\nContexto adicional: {context}"
+
+        # Formatear historial reciente si existe
+        if history:
+            formatted_history = "\n".join([
+                f"Usuario: {u}\nAsistente: {b}" for u, b in history if u or b
+            ])
+            if formatted_history:
+                system_prompt += f"\n\nHistorial reciente:\n{formatted_history}"
         
         prompt = f"{system_prompt}\n\nUsuario: {message}\n\nAsistente:"
         

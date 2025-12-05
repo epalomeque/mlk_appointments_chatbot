@@ -8,12 +8,16 @@ class ChatRequest(BaseModel):
     """Esquema para solicitud de chat"""
     message: str
     user_id: Optional[str] = None
+    # Contexto adicional opcional enviado por el cliente
+    context: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
     """Esquema para respuesta de chat"""
     response: str
     message_id: Optional[int] = None
+    # Identificador del usuario para mantener el contexto entre turnos
+    user_id: str
 
 
 class AppointmentCreate(BaseModel):
