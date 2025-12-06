@@ -14,6 +14,7 @@ from src.schemas import (
     AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListResponse
 )
 from src.ollama_service import ollama_service
+from src.config import MAX_TURNS
 
 app = FastAPI(
     title="MLK Appointments Chatbot",
@@ -98,8 +99,6 @@ async def chat(
         # Determinar o generar user_id para mantener el contexto entre turnos
         user_id = (request.user_id or "").strip() or str(uuid4())
 
-        # Recuperar historial reciente de este usuario (limitar a los últimos N turnos)
-        MAX_TURNS = 8  # número de pares usuario/bot a incluir en el prompt
         history_items_desc: List[ChatMessage] = session.exec(
             select(ChatMessage)
             .where(ChatMessage.user_id == user_id)

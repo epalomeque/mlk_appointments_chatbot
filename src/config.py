@@ -16,3 +16,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app/db/database.db")
 
 # FastAPI configuration
 FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", 8000))
+
+# CHAT CONFIG
+# Historial reciente por usuario
+MAX_TURNS = 8
