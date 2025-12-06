@@ -9,7 +9,8 @@ from uuid import uuid4
 from src.database import init_db, get_session
 from src.models import Appointment, ChatMessage
 from src.schemas import (
-    ChatRequest, ChatResponse, 
+    ChatRequest, ChatResponse,
+    ChatHistoryResponse,
     AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListResponse
 )
 from src.ollama_service import ollama_service
@@ -49,6 +50,7 @@ async def root():
         "version": "0.1.0",
         "endpoints": {
             "chat": "/api/chat",
+            "chat_history": "/api/chat/history",
             "appointments": "/api/appointments",
             "health": "/health"
         }
@@ -96,12 +98,16 @@ async def chat(
         # Determinar o generar user_id para mantener el contexto entre turnos
         user_id = (request.user_id or "").strip() or str(uuid4())
 
-        # Recuperar historial reciente de este usuario
-        history_items: List[ChatMessage] = session.exec(
+        # Recuperar historial reciente de este usuario (limitar a los últimos N turnos)
+        MAX_TURNS = 8  # número de pares usuario/bot a incluir en el prompt
+        history_items_desc: List[ChatMessage] = session.exec(
             select(ChatMessage)
             .where(ChatMessage.user_id == user_id)
-            .order_by(ChatMessage.created_at.asc())
+            .order_by(ChatMessage.created_at.desc())
+            .limit(MAX_TURNS)
         ).all()
+        # Revertir a orden cronológico para el prompt
+        history_items = list(reversed(history_items_desc))
         history = [(item.user_message, item.bot_response) for item in history_items]
 
         # Obtener respuesta de Ollama, pasando también historial
@@ -124,6 +130,49 @@ async def chat(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en el chat: {str(e)}")
+
+
+@app.get("/api/chat/history", response_model=ChatHistoryResponse)
+async def get_chat_history(
+    user_id: str,
+    limit: int = 50,
+    session: Session = Depends(get_session)
+):
+    """
+    Obtener historial de conversación por user_id.
+    """
+    try:
+        # Limitar el máximo permitido para evitar respuestas demasiado grandes
+        max_limit = 200
+        effective_limit = max(1, min(limit, max_limit))
+
+        items: List[ChatMessage] = session.exec(
+            select(ChatMessage)
+            .where(ChatMessage.user_id == user_id)
+            .order_by(ChatMessage.created_at.asc())
+            .limit(effective_limit)
+        ).all()
+
+        # Convertir a una lista de elementos con roles
+        history_items = []
+        for m in items:
+            history_items.append({
+                "role": "user",
+                "content": m.user_message,
+                "created_at": m.created_at,
+            })
+            history_items.append({
+                "role": "assistant",
+                "content": m.bot_response,
+                "created_at": m.created_at,
+            })
+
+        return {
+            "user_id": user_id,
+            "items": history_items,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener historial: {str(e)}")
 
 
 @app.post("/api/appointments", response_model=AppointmentResponse)

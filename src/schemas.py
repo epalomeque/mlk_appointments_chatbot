@@ -20,6 +20,19 @@ class ChatResponse(BaseModel):
     user_id: str
 
 
+class ChatHistoryItem(BaseModel):
+    """Elemento de historial de chat con rol y contenido"""
+    role: str  # "user" | "assistant"
+    content: str
+    created_at: datetime
+
+
+class ChatHistoryResponse(BaseModel):
+    """Respuesta para historial de chat por usuario"""
+    user_id: str
+    items: list[ChatHistoryItem]
+
+
 class AppointmentCreate(BaseModel):
     """Esquema para crear una cita"""
     name: str
