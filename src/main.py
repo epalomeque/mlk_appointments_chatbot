@@ -14,7 +14,7 @@ from src.schemas import (
     AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListResponse
 )
 from src.ollama_service import ollama_service
-from src.config import MAX_TURNS
+from src.config import OLLAMA_MAX_TURNS
 
 app = FastAPI(
     title="MLK Appointments Chatbot",
@@ -79,7 +79,8 @@ async def chat(
     try:
         # Obtener contexto de citas existentes para mejorar las respuestas
         appointments = session.exec(
-            select(Appointment).order_by(Appointment.date.desc()).limit(5)
+            select(Appointment)
+            .order_by(Appointment.date.desc()).limit(5)
         ).all()
         
         # Construir contexto combinando citas recientes y el contexto opcional enviado por el cliente
@@ -95,7 +96,7 @@ async def chat(
             context_parts.append(f"Contexto del usuario: {request.context}")
 
         context = "\n".join(context_parts) if context_parts else None
-        
+
         # Determinar o generar user_id para mantener el contexto entre turnos
         user_id = (request.user_id or "").strip() or str(uuid4())
 
@@ -103,7 +104,7 @@ async def chat(
             select(ChatMessage)
             .where(ChatMessage.user_id == user_id)
             .order_by(ChatMessage.created_at.desc())
-            .limit(MAX_TURNS)
+            .limit(OLLAMA_MAX_TURNS)
         ).all()
         # Revertir a orden cronológico para el prompt
         history_items = list(reversed(history_items_desc))
@@ -111,7 +112,7 @@ async def chat(
 
         # Obtener respuesta de Ollama, pasando también historial
         response_text = await ollama_service.chat(request.message, context, history)
-        
+
         # Guardar el mensaje en el historial
         chat_message = ChatMessage(
             user_id=user_id,

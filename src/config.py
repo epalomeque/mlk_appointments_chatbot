@@ -17,6 +17,9 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app/db/database.db")
 # FastAPI configuration
 FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", 8000))
 
-# CHAT CONFIG
+## OLLAMA API CONFIG
+OLLAMA_ENDPOINT_GENERATE = "/api/generate"
 # Historial reciente por usuario
-MAX_TURNS = 8
+OLLAMA_MAX_TURNS = 8
+# Timeout for ollama service
+OLLAMA_BASE_TIMEOUT = 300.0

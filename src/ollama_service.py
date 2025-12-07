@@ -1,10 +1,9 @@
 # src/ollama_service.py
 import httpx
 from typing import Optional, List, Tuple
-from src.config import OLLAMA_BASE_URL, OLLAMA_MODEL
+from src.config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_BASE_TIMEOUT, OLLAMA_ENDPOINT_GENERATE
 from src.master_prompt import MASTER_PROMPT
-
-BASE_TIMEOUT = 120.0
+from src.ollama_tools import TOOLS
 
 
 class OllamaService:
@@ -13,7 +12,9 @@ class OllamaService:
     def __init__(self):
         self.base_url = OLLAMA_BASE_URL
         self.model = OLLAMA_MODEL
-        self.client = httpx.AsyncClient(timeout=BASE_TIMEOUT)
+        self.client = httpx.AsyncClient(timeout=OLLAMA_BASE_TIMEOUT)
+        self.tools = TOOLS
+        self.api_generate = OLLAMA_ENDPOINT_GENERATE
     
 
     async def chat(
@@ -28,6 +29,7 @@ class OllamaService:
         Args:
             message: Mensaje del usuario
             context: Contexto adicional (por ejemplo, información sobre citas existentes)
+            history: Historial de la conversacion, si existe en la BdD
         
         Returns:
             Respuesta del modelo
@@ -51,7 +53,7 @@ class OllamaService:
         
         try:
             response = await self.client.post(
-                f"{self.base_url}/api/generate",
+                f"{self.base_url}{self.api_generate}",
                 json={
                     "model": self.model,
                     "prompt": prompt,
@@ -65,7 +67,8 @@ class OllamaService:
             return f"Error al conectar con el servicio de Ollama: {str(e)}"
         except Exception as e:
             return f"Error inesperado: {str(e)}"
-    
+
+
     async def close(self):
         """Cerrar el cliente HTTP"""
         await self.client.aclose()
