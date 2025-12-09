@@ -1,4 +1,6 @@
 # src/main.py
+import logging
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
@@ -112,7 +114,6 @@ async def chat(
 
         # Obtener respuesta de Ollama, pasando también historial
         response_text = await ollama_service.chat(request.message, context, history)
-
         # Guardar el mensaje en el historial
         chat_message = ChatMessage(
             user_id=user_id,

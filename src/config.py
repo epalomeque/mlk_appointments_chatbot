@@ -19,7 +19,10 @@ FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", 8000))
 
 ## OLLAMA API CONFIG
 OLLAMA_ENDPOINT_GENERATE = "/api/generate"
+OLLAMA_ENDPOINT_CHAT = "/api/chat"
 # Historial reciente por usuario
 OLLAMA_MAX_TURNS = 8
 # Timeout for ollama service
 OLLAMA_BASE_TIMEOUT = 300.0
+#
+OLLAMA_MAX_ROUND_FOR_TOOL_CALL = 5
